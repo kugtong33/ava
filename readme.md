@@ -601,32 +601,47 @@ Keep in mind that the `.beforeEach()` and `.afterEach()` hooks run just before a
 Remember that AVA runs each test file in its own process. You may not have to clean up global state in a `.after()`-hook since that's only called right before the process exits.
 
 #### Test context
-
-The `.beforeEach()` & `.afterEach()` hooks can share context with the test:
+Test contexts can share referenced values on all tests through `before()` hooks.
+Referenced values can act as globals in your test files, so you can declare reusable objects inside the `before()` hook context.
 
 ```js
-test.beforeEach(t => {
-	t.context.data = generateUniqueData();
+test.before(t => {
+	t.context = new Object();
 });
 
-test('context data is foo', t => {
-	t.is(t.context.data + 'bar', 'foobar');
+test.beforeEach(t => {
+	t.context.foo = 'bar';
+});
+
+test('manipulate referenced context value', t => {
+	t.context.foo = 'baz';
+});
+
+/* given that the test is serial, or else race condition occurs */
+test('check referenced context value', t => {
+	t.is(t.context.foo, 'baz');
 });
 ```
 
-The context is not shared between tests, allowing you to set up data in a way where it will not risk leaking to other, subsequent tests. By default `t.context` is an object but you can reassign it:
+On the other hand, primitive context values are not shared between tests (each `beforeEach-test-afterEach` sequence has its own copy), allowing you to set up data in a way where it will not risk leaking to other, subsequent tests.
 
 ```js
-test.beforeEach(t => {
-	t.context = 'unicorn';
+test.before(t => {
+	t.context = 0;
 });
 
-test('context is unicorn', t => {
-	t.is(t.context, 'unicorn');
+test.beforeEach(t => {
+	t.context += 1;
+});
+
+test('manipulate primitive context value', t => {
+	t.context += 1;
+});
+
+test('check primitive context value', t => {
+	t.is(t.context, 1);
 });
 ```
-
-Context sharing is *not* available to `.before()` and `.after()` hooks.
 
 ### Test macros
 
